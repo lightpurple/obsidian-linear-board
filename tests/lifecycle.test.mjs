@@ -30,13 +30,21 @@ test("disabling the plugin releases an open note's timers and event subscription
   class HostPlugin {
     addSettingTab() {}
     addCommand() {}
+    registerEvent() {}
     registerMarkdownCodeBlockProcessor(key, processor) { processors.set(key, processor); }
   }
   const api = { MarkdownRenderChild: HostChild, Plugin: HostPlugin, PluginSettingTab: class {}, Modal: class {} };
   const plugin = pluginWith(api);
   plugin.app = {
     secretStorage: { getSecret: () => null },
-    workspace: { on: (_, fn) => { callbacks.add(fn); return () => callbacks.delete(fn); } },
+    vault: { on() {} },
+    workspace: {
+      getLeavesOfType: () => [],
+      on(name, fn) {
+        if (name === "active-leaf-change") callbacks.add(fn);
+        return () => callbacks.delete(fn);
+      },
+    },
   };
   try {
     plugin.onload();
@@ -48,6 +56,34 @@ test("disabling the plugin releases an open note's timers and event subscription
   } finally {
     dom.window.close();
   }
+});
+
+test("daily layout follows the file when splitting, reusing or renaming a tab, and is released on unload", () => {
+  class MarkdownView {
+    constructor(path) { this.file = { path }; this.contentEl = doc.createElement("div"); }
+  }
+  class HostPlugin { addSettingTab() {} addCommand() {} registerEvent() {} registerMarkdownCodeBlockProcessor() {} }
+  const doc = new JSDOM().window.document;
+  const daily = "raw/notes/daily/2026-11-18.md", topic = "raw/notes/ongoing/주제.md";
+  const views = [new MarkdownView(daily), new MarkdownView(topic)];
+  const handlers = new Map();
+  const on = (name, fn) => handlers.set(name, fn);
+  const plugin = pluginWith({ Plugin: HostPlugin, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {}, MarkdownView });
+  plugin.app = { workspace: { on, getLeavesOfType: () => views.map(view => ({ view })) }, vault: { on }, secretStorage: { getSecret: () => null } };
+  const wide = () => views.map(view => view.contentEl.classList.contains("ldb-daily-note"));
+  plugin.onload();
+  assert.deepEqual(wide(), [true, false]);
+  views.push(new MarkdownView(daily));
+  handlers.get("layout-change")();
+  assert.deepEqual(wide(), [true, false, true]);
+  views[0].file = { path: topic };
+  handlers.get("file-open")(views[0].file);
+  assert.deepEqual(wide(), [false, false, true]);
+  views[1].file.path = daily;
+  handlers.get("rename")(views[1].file, topic);
+  assert.deepEqual(wide(), [false, true, true]);
+  plugin.onunload();
+  assert.deepEqual(wide(), [false, false, false]);
 });
 
 test("clicking a topic after restarting Obsidian reuses its unpinned editor in the right sidebar", async () => {

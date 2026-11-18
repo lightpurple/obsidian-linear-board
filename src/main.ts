@@ -7,6 +7,7 @@ import { BoardStore, isLiveNote, REFRESH_MS } from "./store.ts";
 import { BoardWidget } from "./widget.ts";
 
 const KEY_ID = "linear-daily-board-api-key";
+const DAILY_FOLDER = "raw/notes/daily/";
 const TOPIC_FOLDER = "raw/notes/ongoing";
 
 function isTopicPath(path: string): boolean {
@@ -22,6 +23,11 @@ export default class LinearDailyBoard extends Plugin {
   private blocks = new Set<MarkdownRenderChild>();
 
   onload() {
+    const updateWidths = () => this.setDailyNoteWidths(true);
+    this.registerEvent(this.app.workspace.on("file-open", updateWidths));
+    this.registerEvent(this.app.workspace.on("layout-change", updateWidths));
+    this.registerEvent(this.app.vault.on("rename", updateWidths));
+    updateWidths();
     this.addSettingTab(new BoardSettings(this.app, this));
     this.addCommand({ id: "connect", name: "Linear API 키 연결", callback: () => this.openConnection() });
     this.registerMarkdownCodeBlockProcessor("linear-board", (_text, el, ctx) => {
@@ -34,9 +40,18 @@ export default class LinearDailyBoard extends Plugin {
   }
 
   onunload() {
+    this.setDailyNoteWidths(false);
     for (const block of this.blocks) block.unload();
     this.key = null;
     this.store.setClient(null);
+  }
+
+  private setDailyNoteWidths(enabled: boolean) {
+    for (const { view } of this.app.workspace.getLeavesOfType("markdown")) {
+      if (view instanceof MarkdownView) {
+        view.contentEl.classList.toggle("ldb-daily-note", enabled && view.file?.path.startsWith(DAILY_FOLDER) === true);
+      }
+    }
   }
 
   private mount(ctx: MarkdownPostProcessorContext, block: MarkdownRenderChild) {

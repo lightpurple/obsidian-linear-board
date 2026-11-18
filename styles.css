@@ -1,3 +1,6 @@
+.ldb-daily-note {
+  --file-line-width: 100%;
+}
 .linear-daily-board {
   --ldb-border: var(--background-modifier-border);
   color: var(--text-normal);
@@ -42,7 +45,8 @@
 .ldb-column {
   display: flex;
   flex-direction: column;
-  flex: 0 0 clamp(10.5rem, 34vw, 13rem);
+  flex: 1 0 min(12rem, 100%);
+  min-width: 0;
   min-height: 7rem;
   padding: 8px;
   border: 1px solid var(--ldb-border);
