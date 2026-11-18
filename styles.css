@@ -1,0 +1,125 @@
+.linear-daily-board {
+  --ldb-border: var(--background-modifier-border);
+  color: var(--text-normal);
+  min-width: 0;
+}
+.ldb-header, .ldb-column-heading, .ldb-error {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+.ldb-header {
+  min-height: 2rem;
+  margin-bottom: .5rem;
+  flex-wrap: wrap;
+}
+.ldb-caption, .ldb-team-name {
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+}
+.ldb-header .ldb-refresh {
+  margin-inline-start: auto;
+  font-size: var(--font-ui-smaller);
+}
+.ldb-hint, .ldb-count, .ldb-identifier {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+.ldb-error {
+  flex-wrap: wrap;
+  margin: .5rem 0;
+  color: var(--text-error);
+}
+.ldb-team + .ldb-team { margin-top: 1rem; }
+.ldb-team-name { margin-bottom: .4rem; }
+.ldb-lanes {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 1px 1px .55rem;
+  overscroll-behavior-x: contain;
+}
+.ldb-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 clamp(10.5rem, 34vw, 13rem);
+  min-height: 7rem;
+  padding: 8px;
+  border: 1px solid var(--ldb-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+.ldb-cards {
+  max-height: clamp(9rem, 32vh, 16rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+.ldb-column.is-drop-target {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
+}
+.ldb-column-heading {
+  padding: 1px 2px .45rem;
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+}
+.ldb-dot {
+  width: .6rem;
+  height: .6rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.ldb-count { margin-inline-start: auto; }
+.ldb-card {
+  display: grid;
+  gap: 4px;
+  padding: .55rem .6rem;
+  margin-top: .35rem;
+  border: 1px solid var(--ldb-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+}
+.ldb-card[draggable=true] { cursor: grab; }
+.ldb-card.is-dragging { opacity: .55; }
+.ldb-identifier, .ldb-card .ldb-state-select { font-size: var(--font-ui-smaller); }
+.ldb-card a.ldb-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.ldb-card a.ldb-title:hover { text-decoration: underline; }
+.ldb-card .ldb-state-select {
+  justify-self: start;
+  max-width: 100%;
+  margin-top: .2rem;
+}
+.ldb-notes {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+.ldb-notes li { margin: 0; padding: 0; }
+.ldb-notes .ldb-open-note {
+  display: flex;
+  width: 100%;
+  height: auto;
+  gap: .6rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: .55rem .65rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  text-align: start;
+}
+.ldb-notes .ldb-open-note:hover { background: var(--background-modifier-hover); }
+.ldb-note-icon { display: flex; color: var(--text-muted); }
+.ldb-close-note { margin: .4rem .65rem 0; }
+.ldb-close-note[hidden] { display: none; }
+.ldb-credentials label { display: grid; gap: .5rem; }
+.ldb-credentials input { width: 100%; }
