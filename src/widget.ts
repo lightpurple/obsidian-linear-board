@@ -1,5 +1,6 @@
 import type { Issue, Team, WorkflowState } from "./linear.ts";
 import { BoardStore } from "./store.ts";
+import { t } from "./i18n.ts";
 
 const DRAG_TYPE = "application/x-obsidian-linear-issue";
 
@@ -48,24 +49,24 @@ export class BoardWidget {
     if (!this.isLive()) return;
     root.classList.add("linear-daily-board");
     if (!store.connected) {
-      add(root, "p", "ldb-hint", "내 담당 이슈를 보려면 Linear API 키를 연결하세요.");
-      add(root, "button", "mod-cta", "Linear 연결").onclick = this.configure;
+      add(root, "p", "ldb-hint", t("connectPrompt"));
+      add(root, "button", "mod-cta", t("connectTitle")).onclick = this.configure;
       return;
     }
     const header = add(root, "div", "ldb-header");
-    add(header, "span", "ldb-caption", "Linear · 내 담당 이슈");
-    const refresh = add(header, "button", "ldb-refresh", "새로고침");
+    add(header, "span", "ldb-caption", t("caption"));
+    const refresh = add(header, "button", "ldb-refresh", t("refresh"));
     refresh.dataset.focus = "refresh";
     refresh.disabled = !!store.busy;
     refresh.onclick = () => { if (this.isLive()) void store.refresh(true); };
     if (store.busy) {
-      add(header, "span", "ldb-hint", store.busy === "move" ? "저장 중…" : "불러오는 중…").setAttribute("role", "status");
+      add(header, "span", "ldb-hint", store.busy === "move" ? t("saving") : t("loading")).setAttribute("role", "status");
     }
     if (store.error) {
       const alert = add(root, "div", "ldb-error");
       alert.setAttribute("role", "alert");
       add(alert, "span", "", store.error);
-      add(alert, "button", "", "연결 설정").onclick = this.configure;
+      add(alert, "button", "", t("connectionSettings")).onclick = this.configure;
     }
     const board = store.data;
     if (!board) return;
@@ -73,8 +74,8 @@ export class BoardWidget {
     const issues = teamId ? board.issues.filter(issue => issue.teamId === teamId) : board.issues;
     const teams = teamId ? board.teams.filter(team => team.id === teamId) : board.teams;
     if (!issues.length) {
-      const message = teamId ? "선택한 팀에서 내게 배정된 이슈가 없습니다."
-        : "현재 내게 배정된 이슈가 없습니다.";
+      const message = teamId ? t("noIssuesInTeam")
+        : t("noIssues");
       add(root, "p", "ldb-hint", message);
     }
     const grouped = new Map<string, Issue[]>();
@@ -85,7 +86,7 @@ export class BoardWidget {
       if (cards) cards.push(issue);
       else grouped.set(key, [issue]);
     }
-    if (issues.length && !grouped.size) add(root, "p", "ldb-hint", "표시하도록 선택한 상태에 내 담당 이슈가 없습니다.");
+    if (issues.length && !grouped.size) add(root, "p", "ldb-hint", t("noIssuesInStates"));
     for (const team of teams) {
       const states = team.states.filter(state => !hiddenColumns.has(team.id + "/" + state.id));
       if (!states.length) continue;
@@ -171,7 +172,7 @@ export class BoardWidget {
       };
     }
     const select = add(card, "select", "ldb-state-select");
-    select.setAttribute("aria-label", issue.identifier + " 상태 변경");
+    select.setAttribute("aria-label", t("changeStatus", { id: issue.identifier }));
     select.dataset.focus = issue.id;
     for (const state of team.states) {
       const option = add(select, "option", "", state.name);

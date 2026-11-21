@@ -1,4 +1,5 @@
 import type { BoardData, LinearClient } from "./linear.ts";
+import { t } from "./i18n.ts";
 
 type BoardClient = Pick<LinearClient, "load" | "move"> & { dispose?(): void };
 export const REFRESH_MS = 60_000;
@@ -53,12 +54,12 @@ export class BoardStore {
     return () => this.listeners.delete(listener);
   }
 
-  private notify() {
+  notify() {
     for (const listener of this.listeners) listener();
   }
 
   private recordError(error: unknown) {
-    this.error = error instanceof Error ? error.message : "Linear에 연결할 수 없습니다.";
+    this.error = error instanceof Error ? error.message : t("errorUnreachable");
     if (error instanceof Error && "retryAfterMs" in error && typeof error.retryAfterMs === "number") {
       this.retryAt = this.now() + error.retryAfterMs;
     }

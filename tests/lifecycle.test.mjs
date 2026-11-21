@@ -133,6 +133,7 @@ test("team and workflow column settings persist together across reloads", async 
   }
   const api = {
     Plugin: HostPlugin, Setting, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {},
+    getLanguage: () => "ko",
     requestUrl: async ({ body }) => {
       const { query } = JSON.parse(body);
       const pageInfo = { hasNextPage: false };
@@ -170,6 +171,18 @@ test("team and workflow column settings persist together across reloads", async 
   const restarted = await start();
   assert.equal(restarted.store.teamId, "design");
   assert.deepEqual([...restarted.store.hiddenColumns], ["design/done"]);
+  const languageEl = doc.createElement("div");
+  restarted.languageSetting(languageEl, () => {});
+  const language = languageEl.querySelector("select");
+  assert.equal(language.value, "ko");
+  language.value = "en";
+  await language.onchange();
+  const english = await start();
+  const teamsEl = doc.createElement("div");
+  english.teamSetting(teamsEl);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(teamsEl.querySelector("select").options[0].text, "All teams");
+  assert.equal(english.store.teamId, "design");
   dom.window.close();
 });
 

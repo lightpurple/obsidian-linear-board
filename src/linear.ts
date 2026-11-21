@@ -1,3 +1,5 @@
+import { t } from "./i18n.ts";
+
 export interface WorkflowState {
   id: string;
   name: string;
@@ -94,7 +96,7 @@ function stateGroup(type: string): number {
 }
 
 function invalidResponse(): Error {
-  return new Error("Linear 응답을 확인할 수 없습니다. 보드를 새로 고쳐 주세요.");
+  return new Error(t("errorInvalidResponse"));
 }
 
 function hasText<T extends object>(record: T | null | undefined, ...fields: (keyof T)[]): boolean {
@@ -199,7 +201,7 @@ export class LinearClient {
       availableStates.set(team.id, new Set(team.states.map((state) => state.id)));
     }
     if (issues.some((issue) => !availableStates.get(issue.teamId)?.has(issue.stateId))) {
-      throw new Error("조회하는 동안 팀 상태가 변경되었습니다. 보드를 새로 고쳐 주세요.");
+      throw new Error(t("errorStatesChanged"));
     }
     return { teams: [...teams.values()].sort((a, b) => a.name.localeCompare(b.name)), issues };
   }
@@ -210,14 +212,14 @@ export class LinearClient {
     }>(moveIssueMutation, { issueId, stateId });
     const result = data.issueUpdate;
     if (result?.success !== true || result.issue?.id !== issueId || !hasText(result.issue.state, "id")) {
-      throw new Error("Linear에서 상태 변경 결과를 확인할 수 없습니다. 보드를 새로 고쳐 주세요.");
+      throw new Error(t("errorMoveUnconfirmed"));
     }
     return result.issue.state.id;
   }
 
   #activeKey(): string {
-    if (this.#apiKey === null) throw new Error("Linear 연결이 종료되었습니다.");
-    if (!this.#apiKey) throw new Error("플러그인 설정에서 Linear 개인 API 키를 입력해 주세요.");
+    if (this.#apiKey === null) throw new Error(t("errorDisposed"));
+    if (!this.#apiKey) throw new Error(t("errorNoKey"));
     return this.#apiKey;
   }
 
@@ -233,7 +235,7 @@ export class LinearClient {
         throw: false,
       });
     } catch {
-      throw new Error("Linear에 연결할 수 없습니다. 네트워크 연결을 확인한 뒤 보드를 새로 고쳐 주세요.");
+      throw new Error(t("errorNetwork"));
     }
     this.#activeKey();
 
@@ -248,18 +250,18 @@ export class LinearClient {
       .filter((code): code is string => typeof code === "string")
       .map((code) => code.toUpperCase().replace(/[\s_-]/g, "")));
     if (response.status === 429 || errorCodes.has("RATELIMITED")) {
-      throw Object.assign(new Error("Linear API 요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요."), {
+      throw Object.assign(new Error(t("errorRateLimit")), {
         retryAfterMs: retryDelay(response.headers),
       });
     }
     if (response.status === 401 || errorCodes.has("AUTHENTICATIONERROR") || errorCodes.has("UNAUTHENTICATED")) {
-      throw new Error("Linear 인증에 실패했습니다. 플러그인 설정에서 개인 API 키를 확인해 주세요.");
+      throw new Error(t("errorAuth"));
     }
     if (response.status === 403 || errorCodes.has("FORBIDDEN")) {
-      throw new Error("Linear 접근 권한이 없습니다. 개인 API 키의 권한과 팀 접근 범위를 확인해 주세요.");
+      throw new Error(t("errorForbidden"));
     }
     if (response.status < 200 || response.status >= 300 || errors.length > 0) {
-      throw new Error("Linear에서 요청을 처리하지 못했습니다. 잠시 후 보드를 새로 고쳐 주세요.");
+      throw new Error(t("errorServer"));
     }
     if (!reply?.data || typeof reply.data !== "object" || (reply.errors != null && !Array.isArray(reply.errors))) {
       throw invalidResponse();

@@ -3,6 +3,7 @@ import test from "node:test";
 import { JSDOM } from "jsdom";
 import { BoardStore } from "../src/store.ts";
 import { BoardWidget } from "../src/widget.ts";
+import { setLanguage } from "../src/i18n.ts";
 
 function boardData() {
   const state = (id, name, type) => ({ id, name, type, position: 0, color: "#888888" });
@@ -176,4 +177,24 @@ test("activating an issue title opens the issue in the plugin without following 
   assert.equal(event.defaultPrevented, true);
   assert.deepEqual(opened, ["https://linear.app/demo/issue/DEV-3"]);
   dom.window.close();
+});
+
+test("switching the language to English re-labels the board header and status controls", async () => {
+  const el = new JSDOM("<main></main>").window.document.querySelector("main");
+  const store = new BoardStore();
+  store.setClient({ load: async () => boardData(), move: async () => "todo" });
+  const widget = new BoardWidget(el, store, () => {});
+  store.subscribe(() => widget.render());
+  await store.refresh();
+  try {
+    setLanguage("en");
+    widget.render();
+    assert.equal(el.querySelector(".ldb-caption").textContent, "Linear · My issues");
+    assert.equal(el.querySelector(".ldb-refresh").textContent, "Refresh");
+    assert.equal(el.querySelector("select").getAttribute("aria-label"), "Change status of DEV-3");
+  } finally {
+    setLanguage("ko");
+  }
+  widget.render();
+  assert.equal(el.querySelector(".ldb-refresh").textContent, "새로고침");
 });

@@ -9,11 +9,9 @@ An Obsidian plugin that shows your assigned Linear issues as a kanban board insi
   <img alt="A Linear kanban board with Product and Design teams inside an Obsidian daily note" src="docs/board-light-en.png">
 </picture>
 
-The plugin's interface is in Korean. The button and setting names below are given in Korean with an English translation.
-
 ## Connect to Linear
 
-Enable the plugin in Obsidian 1.11.4 or later. In a daily note, click **Linear 연결** (Connect Linear) and enter a personal API key that can read and update issues. The key is kept in Obsidian's secret storage. To change the key, open **Linear Daily Board** in the plugin settings. See the [Linear API documentation](https://linear.app/developers/graphql).
+Enable the plugin in Obsidian 1.11.4 or later. In a daily note, click **Connect Linear** and enter a personal API key that can read and update issues. The key is kept in Obsidian's secret storage. To change the key, open **Linear Daily Board** in the plugin settings. See the [Linear API documentation](https://linear.app/developers/graphql).
 
 ## Use it in a daily note
 
@@ -27,9 +25,10 @@ Add the block below to a daily note or to your daily note template, then open th
 ````
 
 - The board loads the unarchived issues assigned to you. Each team's workflow states become the columns. Drag a card to another column of the same team, or use the status menu on the card. Click an issue title to open it in the web viewer in the right sidebar. This requires the core plugin **Web viewer**.
-- Status changes are sent right away. An open board refreshes about once a minute, and **새로고침** (Refresh) reloads it immediately. If a save response is lost, the plugin checks the status in Linear again. The system "Duplicate" status is applied when you mark an issue as a duplicate in Linear.
+- Status changes are sent right away. An open board refreshes about once a minute, and **Refresh** reloads it immediately. If a save response is lost, the plugin checks the status in Linear again. The system "Duplicate" status is applied when you mark an issue as a duplicate in Linear.
 - The board always shows the current state, whichever date the note is for.
 - In the settings, you can choose which team and which status columns the board shows.
+- The interface is available in English and Korean. It follows Obsidian's language until you pick one under **Language** in the settings.
 
 ## Build and install
 
