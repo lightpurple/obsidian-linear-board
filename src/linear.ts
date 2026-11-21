@@ -60,6 +60,14 @@ const assignedIssuesQuery = `
     }
   }`;
 
+const teamsQuery = `
+  query Teams($after: String) {
+    teams(first: 100, after: $after) {
+      nodes { id key name }
+      pageInfo { hasNextPage endCursor }
+    }
+  }`;
+
 const teamStatesQuery = `
   query TeamStates($teamId: String!, $after: String) {
     team(id: $teamId) {
@@ -149,6 +157,27 @@ export class LinearClient {
     this.#apiKey = null;
   }
 
+  async listTeams(): Promise<Omit<Team, "states">[]> {
+    const teams = await collectPages<Omit<Team, "states">>(async (after) => {
+      const data = await this.#request<{ teams: Page<Omit<Team, "states">> }>(teamsQuery, { after });
+      return data.teams;
+    });
+    if (teams.some((team) => !hasText(team, "key", "name"))) throw invalidResponse();
+    return teams.sort((a, b) => a.name.localeCompare(b.name) || a.key.localeCompare(b.key));
+  }
+
+  async listStates(teamId: string): Promise<WorkflowState[]> {
+    const states = await collectPages<WorkflowState>(async (after) => {
+      const data = await this.#request<{ team: { states: Page<WorkflowState> } }>(teamStatesQuery, { teamId: teamId, after });
+      return data.team?.states;
+    });
+    if (states.some((state) => !hasText(state, "name", "type", "color") || !Number.isFinite(state.position))) {
+      throw invalidResponse();
+    }
+    return states.sort((a, b) =>
+      stateGroup(a.type) - stateGroup(b.type) || a.position - b.position || a.name.localeCompare(b.name));
+  }
+
   async load(): Promise<BoardData> {
     const assigned = await collectPages<AssignedIssue>(async (after) => {
       const data = await this.#request<{ viewer: { assignedIssues: Page<AssignedIssue> } }>(assignedIssuesQuery, { after });
@@ -166,16 +195,8 @@ export class LinearClient {
 
     const availableStates = new Map<string, Set<string>>();
     for (const team of teams.values()) {
-      const states = await collectPages<WorkflowState>(async (after) => {
-        const data = await this.#request<{ team: { states: Page<WorkflowState> } }>(teamStatesQuery, { teamId: team.id, after });
-        return data.team?.states;
-      });
-      if (states.some((state) => !hasText(state, "name", "type", "color") || !Number.isFinite(state.position))) {
-        throw invalidResponse();
-      }
-      team.states = states.sort((a, b) =>
-        stateGroup(a.type) - stateGroup(b.type) || a.position - b.position || a.name.localeCompare(b.name));
-      availableStates.set(team.id, new Set(states.map((state) => state.id)));
+      team.states = await this.listStates(team.id);
+      availableStates.set(team.id, new Set(team.states.map((state) => state.id)));
     }
     if (issues.some((issue) => !availableStates.get(issue.teamId)?.has(issue.stateId))) {
       throw new Error("조회하는 동안 팀 상태가 변경되었습니다. 보드를 새로 고쳐 주세요.");

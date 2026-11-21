@@ -120,3 +120,60 @@ test("refresh preserves the reading position inside a long workflow column", asy
   await store.refresh(true);
   assert.equal(cards().scrollTop, 132);
 });
+
+test("a team preference narrows a rendered board and can be cleared without reloading", async () => {
+  const el = new JSDOM("<main></main>").window.document.querySelector("main");
+  const data = boardData();
+  data.teams.push({ ...data.teams[0], id: "design", key: "DES", name: "디자인팀" });
+  data.issues.push({ ...data.issues[0], id: "des-1", identifier: "DES-1", teamId: "design" });
+  const store = new BoardStore();
+  store.setClient({ load: async () => data, move: async () => "todo" });
+  const widget = new BoardWidget(el, store, () => {});
+  store.subscribe(() => widget.render());
+  await store.refresh();
+  const visible = () => Array.from(el.querySelectorAll(".ldb-lanes"), node => node.dataset.team);
+  assert.deepEqual(visible(), ["team", "design"]);
+  store.setTeamFilter("design");
+  assert.deepEqual(visible(), ["design"]);
+  assert.equal(el.querySelectorAll(".ldb-card").length, 1);
+  store.setTeamFilter("no-issues");
+  assert.deepEqual(visible(), []);
+  assert.match(el.textContent, /선택한 팀/);
+  store.setTeamFilter("");
+  assert.deepEqual(visible(), ["team", "design"]);
+});
+
+test("hiding a workflow column hides its cards for that team only", async () => {
+  const el = new JSDOM("<main></main>").window.document.querySelector("main");
+  const data = boardData();
+  data.teams.push({ ...data.teams[0], id: "design", key: "DES", name: "디자인팀" });
+  data.issues.push({ ...data.issues[0], id: "des-1", identifier: "DES-1", teamId: "design" });
+  const store = new BoardStore();
+  store.setClient({ load: async () => data, move: async () => "todo" });
+  const widget = new BoardWidget(el, store, () => {});
+  store.subscribe(() => widget.render());
+  await store.refresh();
+  assert.equal(el.querySelectorAll('.ldb-card').length, 2);
+  store.setHiddenColumns(["team/todo"]);
+  assert.equal(el.querySelector('[data-team="team"] [data-state-id="todo"]'), null);
+  assert.ok(el.querySelector('[data-team="team"] [data-state-id="doing"]'));
+  assert.ok(el.querySelector('[data-team="design"] [data-state-id="todo"] .ldb-card'));
+  store.setHiddenColumns([]);
+  assert.ok(el.querySelector('[data-team="team"] [data-state-id="todo"] .ldb-card'));
+});
+
+test("activating an issue title opens the issue in the plugin without following the browser link", async () => {
+  const dom = new JSDOM("<main></main>");
+  const root = dom.window.document.querySelector("main");
+  const store = new BoardStore();
+  store.setClient({ load: async () => boardData(), move: async () => "todo" });
+  const opened = [];
+  const widget = new BoardWidget(root, store, () => {}, () => true, issue => opened.push(issue.url));
+  store.subscribe(() => widget.render());
+  await store.refresh();
+  const event = new dom.window.MouseEvent("click", { bubbles: true, cancelable: true });
+  root.querySelector(".ldb-title").dispatchEvent(event);
+  assert.equal(event.defaultPrevented, true);
+  assert.deepEqual(opened, ["https://linear.app/demo/issue/DEV-3"]);
+  dom.window.close();
+});

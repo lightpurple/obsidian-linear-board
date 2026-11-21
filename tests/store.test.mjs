@@ -112,7 +112,7 @@ test("automatic refresh shares the cache and waits out a server rate limit, incl
   assert.equal(store.error, "");
 });
 
-test("past and future daily notes do not show today's live state", () => {
+test("ongoing notes only appear in today's daily note or an undated note", () => {
   const localNoon = new Date(2026, 10, 18, 12);
   assert.equal(isLiveNote("raw/notes/daily/2026-11-18.md", localNoon), true);
   assert.equal(isLiveNote("raw/notes/daily/2026-11-17.md", localNoon), false);

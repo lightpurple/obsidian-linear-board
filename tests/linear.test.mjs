@@ -261,3 +261,11 @@ test("a status removed between issue and team requests cannot silently hide an a
     : states([state("todo", "unstarted", 0)]));
   await assert.rejects(client.load(), /상태.*새로/);
 });
+
+test("lists accessible teams even when the user has no issues in those teams", async () => {
+  const { client } = requestFixture(({ query, variables }) => {
+    assert.match(query, /teams\(.*after: \$after/);
+    return response({ data: { teams: variables.after ? page([design]) : page([engineering], "next") } });
+  });
+  assert.deepEqual(await client.listTeams(), [design, engineering]);
+});

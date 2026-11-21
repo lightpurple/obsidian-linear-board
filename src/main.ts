@@ -1,14 +1,17 @@
 import {
   App, MarkdownRenderChild, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, type MarkdownPostProcessorContext,
-  requestUrl, setIcon, TFile, WorkspaceLeaf,
+  requestUrl, setIcon, Setting, TFile, WorkspaceLeaf,
 } from "obsidian";
-import { LinearClient } from "./linear.ts";
+import { LinearClient, type Issue, type Team } from "./linear.ts";
 import { BoardStore, isLiveNote, REFRESH_MS } from "./store.ts";
 import { BoardWidget } from "./widget.ts";
 
+const WEB_VIEWER = "webviewer";
 const KEY_ID = "linear-daily-board-api-key";
 const DAILY_FOLDER = "raw/notes/daily/";
 const TOPIC_FOLDER = "raw/notes/ongoing";
+
+type DisplaySettings = { teamId: string; hiddenColumns: string[] };
 
 function isTopicPath(path: string): boolean {
   return path === TOPIC_FOLDER || path.startsWith(TOPIC_FOLDER + "/");
@@ -16,13 +19,22 @@ function isTopicPath(path: string): boolean {
 
 export default class LinearDailyBoard extends Plugin {
   store = new BoardStore();
+  private settingsSave = Promise.resolve();
+  private linear: LinearClient | null = null;
   private key: string | null = null;
+  private issueViewer: WorkspaceLeaf | null = null;
+  private openingIssue = false;
   private editor: WorkspaceLeaf | null = null;
   private editedNote: TFile | null = null;
   private opening = false;
   private blocks = new Set<MarkdownRenderChild>();
 
-  onload() {
+  async onload() {
+    const settings = await this.loadData();
+    if (typeof settings?.teamId === "string") this.store.setTeamFilter(settings.teamId);
+    if (Array.isArray(settings?.hiddenColumns)) {
+      this.store.setHiddenColumns(settings.hiddenColumns.filter((column: unknown) => typeof column === "string"));
+    }
     const updateWidths = () => this.setDailyNoteWidths(true);
     this.registerEvent(this.app.workspace.on("file-open", updateWidths));
     this.registerEvent(this.app.workspace.on("layout-change", updateWidths));
@@ -43,6 +55,7 @@ export default class LinearDailyBoard extends Plugin {
     this.setDailyNoteWidths(false);
     for (const block of this.blocks) block.unload();
     this.key = null;
+    this.linear = null;
     this.store.setClient(null);
   }
 
@@ -67,11 +80,127 @@ export default class LinearDailyBoard extends Plugin {
     const key = this.app.secretStorage.getSecret(KEY_ID)?.trim() || null;
     if (key === this.key) return;
     this.key = key;
-    this.store.setClient(key ? new LinearClient(key, requestUrl) : null);
+    this.linear = key ? new LinearClient(key, requestUrl) : null;
+    this.store.setClient(this.linear);
   }
 
   openConnection() {
     new ConnectModal(this.app, this).open();
+  }
+
+  teamSetting(el: HTMLElement) {
+    this.updateKey();
+    const client = this.linear;
+    if (!client) return;
+    const setting = new Setting(el).setName("표시할 팀");
+    const description = "일일노트에서 선택한 팀의 내 담당 이슈를 표시합니다.";
+    setting.setDesc("Linear 팀을 불러오는 중…");
+    const statesEl = el.ownerDocument.createElement("div");
+    el.append(statesEl);
+    setting.addDropdown(dropdown => {
+      dropdown.setDisabled(true).addOption("", "모든 팀");
+      void client.listTeams().then(teams => {
+        if (!el.contains(setting.settingEl) || this.linear !== client) return;
+        for (const team of teams) dropdown.addOption(team.id, `${team.name} (${team.key})`);
+        if (this.store.teamId && !teams.some(team => team.id === this.store.teamId)) {
+          dropdown.addOption(this.store.teamId, "이전에 선택한 팀 (목록에 없음)");
+        }
+        setting.setDesc(description);
+        this.renderStateSettings(statesEl, client, teams);
+        dropdown.setValue(this.store.teamId).setDisabled(false).onChange(async teamId => {
+          dropdown.setDisabled(true);
+          try {
+            await this.saveDisplaySettings(() => ({ teamId }));
+            if (el.contains(statesEl) && this.linear === client) this.renderStateSettings(statesEl, client, teams);
+          } catch {
+            new Notice("팀 선택을 저장하지 못했습니다.");
+          } finally {
+            dropdown.setValue(this.store.teamId).setDisabled(false);
+          }
+        });
+      }).catch(error => {
+        if (el.contains(setting.settingEl) && this.linear === client) {
+          setting.setDesc(error instanceof Error ? error.message : "Linear 팀을 불러오지 못했습니다.");
+        }
+      });
+    });
+  }
+
+  private saveDisplaySettings(change: () => Partial<DisplaySettings>) {
+    const save = this.settingsSave.then(async () => {
+      const changed = change();
+      await this.saveData({ teamId: this.store.teamId, hiddenColumns: [...this.store.hiddenColumns], ...changed });
+      if (changed.teamId !== undefined) this.store.setTeamFilter(changed.teamId);
+      if (changed.hiddenColumns !== undefined) this.store.setHiddenColumns(changed.hiddenColumns);
+    });
+    this.settingsSave = save.catch(() => {});
+    return save;
+  }
+
+  private renderStateSettings(el: HTMLElement, client: LinearClient, teams: Omit<Team, "states">[]) {
+    el.replaceChildren();
+    const { teamId } = this.store;
+    const visibleTeams = teamId ? teams.filter(team => team.id === teamId) : teams;
+    new Setting(el).setName("표시할 상태").setHeading()
+      .setDesc(visibleTeams.length ? "칸반에 표시할 상태를 켜세요." : "상태를 표시할 수 있는 팀이 없습니다.");
+    const doc = el.ownerDocument;
+    for (const team of visibleTeams) {
+      const stateList = doc.createElement("div");
+      if (visibleTeams.length === 1) {
+        el.append(stateList);
+        void this.loadStateSettings(stateList, client, team.id);
+        continue;
+      }
+      const details = doc.createElement("details");
+      const summary = doc.createElement("summary");
+      summary.textContent = `${team.name} (${team.key})`;
+      details.append(summary, stateList);
+      el.append(details);
+      details.ontoggle = () => {
+        if (!details.open || stateList.hasChildNodes()) return;
+        void this.loadStateSettings(stateList, client, team.id);
+      };
+    }
+  }
+
+  private async loadStateSettings(el: HTMLElement, client: LinearClient, teamId: string) {
+    const status = el.ownerDocument.createElement("p");
+    status.className = "ldb-hint";
+    status.setAttribute("role", "status");
+    status.textContent = "Linear 상태를 불러오는 중…";
+    el.append(status);
+    try {
+      const states = await client.listStates(teamId);
+      if (!el.isConnected || this.linear !== client) return;
+      if (!states.length) {
+        status.textContent = "이 팀에 표시할 상태가 없습니다.";
+        return;
+      }
+      status.remove();
+      for (const state of states) {
+        const column = teamId + "/" + state.id;
+        new Setting(el).setName(state.name).addToggle(toggle => {
+          toggle.toggleEl.setAttribute("aria-label", state.name);
+          toggle.setValue(!this.store.hiddenColumns.has(column)).onChange(async visible => {
+            toggle.setDisabled(true);
+            try {
+              await this.saveDisplaySettings(() => {
+                const hidden = new Set(this.store.hiddenColumns);
+                if (visible) hidden.delete(column);
+                else hidden.add(column);
+                return { hiddenColumns: [...hidden] };
+              });
+            } catch {
+              new Notice("상태 선택을 저장하지 못했습니다.");
+            } finally {
+              toggle.setValue(!this.store.hiddenColumns.has(column)).setDisabled(false);
+            }
+          });
+        });
+      }
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Linear 상태를 불러오지 못했습니다.";
+    }
   }
 
   connectionForm(el: HTMLElement, saved: () => void) {
@@ -102,6 +231,29 @@ export default class LinearDailyBoard extends Plugin {
         new Notice("옵시디언 비밀 저장소에 키를 저장하지 못했습니다.");
       }
     };
+  }
+
+  async openIssue(issue: Issue) {
+    if (this.openingIssue || !issue.url.startsWith("https://linear.app/")) return;
+    this.openingIssue = true;
+    let newLeaf: WorkspaceLeaf | null = null;
+    try {
+      const workspace = this.app.workspace;
+      const viewers = workspace.getLeavesOfType(WEB_VIEWER).filter(leaf =>
+        leaf.getRoot() === workspace.rightSplit && !leaf.getViewState().pinned);
+      const existing = viewers.find(leaf => leaf === this.issueViewer || leaf.getViewState().state?.url === issue.url);
+      const leaf = existing ?? (newLeaf = workspace.getRightLeaf(false));
+      if (!leaf) throw new Error("Right sidebar unavailable");
+      await leaf.setViewState({ type: WEB_VIEWER, active: true, state: { url: issue.url, title: issue.title, navigate: true } });
+      if (leaf.view.getViewType() !== WEB_VIEWER) throw new Error("Web viewer unavailable");
+      await workspace.revealLeaf(leaf);
+      this.issueViewer = leaf;
+    } catch {
+      newLeaf?.detach();
+      new Notice("오른쪽에서 이슈를 열 수 없습니다. 데스크톱 옵시디언에서 코어 플러그인 ‘웹 뷰어’를 켜 주세요.");
+    } finally {
+      this.openingIssue = false;
+    }
   }
 
   topicEditor(): WorkspaceLeaf | null {
@@ -153,14 +305,12 @@ class LiveBoard extends DailyBlock {
 
   onload() {
     const { plugin, containerEl } = this;
-    const isLive = () => isLiveNote(this.path);
-    let wasLive = isLive();
-    const widget = new BoardWidget(containerEl, plugin.store, () => plugin.openConnection(), isLive);
+    // The board always shows current Linear state, whichever daily note it is in.
+    const widget = new BoardWidget(containerEl, plugin.store, () => plugin.openConnection(), undefined,
+      issue => void plugin.openIssue(issue));
     this.register(plugin.store.subscribe(() => widget.render()));
     const refresh = () => {
-      const live = isLive();
-      if (wasLive !== live) { wasLive = live; widget.render(); }
-      if (!live || widget.dragging || widget.selecting || containerEl.ownerDocument.hidden || !containerEl.getClientRects().length) return;
+      if (widget.dragging || widget.selecting || containerEl.ownerDocument.hidden || !containerEl.getClientRects().length) return;
       plugin.updateKey();
       void plugin.store.refresh();
     };
@@ -230,6 +380,7 @@ class BoardSettings extends PluginSettingTab {
   constructor(app: App, private boardPlugin: LinearDailyBoard) { super(app, boardPlugin); }
   display() {
     this.containerEl.empty();
+    this.boardPlugin.teamSetting(this.containerEl);
     this.boardPlugin.connectionForm(this.containerEl, () => {
       new Notice("API 키를 저장했습니다.");
       this.display();

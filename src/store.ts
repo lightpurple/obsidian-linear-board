@@ -14,6 +14,8 @@ export class BoardStore {
   data: BoardData | null = null;
   busy: "refresh" | "move" | null = null;
   error = "";
+  private displayedTeam = "";
+  private hidden = new Set<string>();
   private client: BoardClient | null = null;
   private listeners = new Set<() => void>();
   private lastReadAt = -Infinity;
@@ -25,6 +27,21 @@ export class BoardStore {
   }
 
   get connected(): boolean { return this.client !== null; }
+
+  get teamId(): string { return this.displayedTeam; }
+
+  setTeamFilter(teamId: string) {
+    if (this.displayedTeam === teamId) return;
+    this.displayedTeam = teamId;
+    this.notify();
+  }
+
+  get hiddenColumns(): ReadonlySet<string> { return this.hidden; }
+
+  setHiddenColumns(columns: string[]) {
+    this.hidden = new Set(columns);
+    this.notify();
+  }
 
   setClient(client: BoardClient | null) {
     if (this.client === client) return;

@@ -16,14 +16,17 @@ export class BoardWidget {
   private store: BoardStore;
   private configure: () => void;
   private isLive: () => boolean;
+  private openIssue?: (issue: Issue) => void;
   private dragged: Issue | null = null;
   private restoreFocus: string | null = null;
 
-  constructor(root: HTMLElement, store: BoardStore, configure: () => void, isLive = () => true) {
+  constructor(root: HTMLElement, store: BoardStore, configure: () => void, isLive = () => true,
+    openIssue?: (issue: Issue) => void) {
     this.root = root;
     this.store = store;
     this.configure = configure;
     this.isLive = isLive;
+    this.openIssue = openIssue;
   }
 
   get dragging(): boolean { return this.dragged !== null; }
@@ -66,20 +69,31 @@ export class BoardWidget {
     }
     const board = store.data;
     if (!board) return;
-    if (!board.issues.length) add(root, "p", "ldb-hint", "현재 내게 배정된 이슈가 없습니다.");
+    const { teamId, hiddenColumns } = store;
+    const issues = teamId ? board.issues.filter(issue => issue.teamId === teamId) : board.issues;
+    const teams = teamId ? board.teams.filter(team => team.id === teamId) : board.teams;
+    if (!issues.length) {
+      const message = teamId ? "선택한 팀에서 내게 배정된 이슈가 없습니다."
+        : "현재 내게 배정된 이슈가 없습니다.";
+      add(root, "p", "ldb-hint", message);
+    }
     const grouped = new Map<string, Issue[]>();
-    for (const issue of board.issues) {
+    for (const issue of issues) {
       const key = issue.teamId + "/" + issue.stateId;
+      if (hiddenColumns.has(key)) continue;
       const cards = grouped.get(key);
       if (cards) cards.push(issue);
       else grouped.set(key, [issue]);
     }
-    for (const team of board.teams) {
+    if (issues.length && !grouped.size) add(root, "p", "ldb-hint", "표시하도록 선택한 상태에 내 담당 이슈가 없습니다.");
+    for (const team of teams) {
+      const states = team.states.filter(state => !hiddenColumns.has(team.id + "/" + state.id));
+      if (!states.length) continue;
       const section = add(root, "section", "ldb-team");
       add(section, "div", "ldb-team-name", team.name);
       const lanes = add(section, "div", "ldb-lanes");
       lanes.dataset.team = team.id;
-      for (const state of team.states) {
+      for (const state of states) {
         const key = team.id + "/" + state.id;
         const list = this.column(lanes, team, state, grouped.get(key) ?? []);
         list.dataset.column = key;
@@ -148,6 +162,14 @@ export class BoardWidget {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.draggable = false;
+    if (link.href && this.openIssue) {
+      link.onclick = event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.openIssue?.(issue);
+      };
+    }
     const select = add(card, "select", "ldb-state-select");
     select.setAttribute("aria-label", issue.identifier + " 상태 변경");
     select.dataset.focus = issue.id;
