@@ -1,6 +1,6 @@
 import {
   App, MarkdownRenderChild, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, type MarkdownPostProcessorContext,
-  getLanguage, requestUrl, Setting, WorkspaceLeaf,
+  getLanguage, moment, requestUrl, Setting, WorkspaceLeaf,
 } from "obsidian";
 import { LinearClient, type Issue, type Team } from "./linear.ts";
 import { BoardStore, REFRESH_MS } from "./store.ts";
@@ -9,9 +9,17 @@ import { getCurrentLanguage, setLanguage, t, type Language } from "./i18n.ts";
 
 const WEB_VIEWER = "webviewer";
 const KEY_ID = "linear-daily-board-api-key";
-const DAILY_FOLDER = "raw/notes/daily/";
 
 type DisplaySettings = { teamId: string; hiddenColumns: string[]; language: Language };
+
+// Obsidian has no public API for the core Daily notes settings, so read its options directly.
+function isDailyNote(app: App, path: string): boolean {
+  const options = (app as any).internalPlugins?.getPluginById?.("daily-notes")?.instance?.options ?? {};
+  const folder = String(options.folder ?? "").replace(/^\/+|\/+$/g, "");
+  const prefix = folder ? folder + "/" : "";
+  if (!path.startsWith(prefix) || !path.endsWith(".md")) return false;
+  return moment(path.slice(prefix.length, -3), options.format || "YYYY-MM-DD", true).isValid();
+}
 
 function isLanguage(value: unknown): value is Language {
   return value === "ko" || value === "en";
@@ -59,7 +67,7 @@ export default class LinearDailyBoard extends Plugin {
   private setDailyNoteWidths(enabled: boolean) {
     for (const { view } of this.app.workspace.getLeavesOfType("markdown")) {
       if (view instanceof MarkdownView) {
-        view.contentEl.classList.toggle("ldb-daily-note", enabled && view.file?.path.startsWith(DAILY_FOLDER) === true);
+        view.contentEl.classList.toggle("ldb-daily-note", enabled && !!view.file && isDailyNote(this.app, view.file.path));
       }
     }
   }

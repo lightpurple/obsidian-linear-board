@@ -27,6 +27,7 @@ Add the block below to a daily note or to your daily note template, then open th
 - The board loads the unarchived issues assigned to you. Each team's workflow states become the columns. Drag a card to another column of the same team, or use the status menu on the card. Click an issue title to open it in the web viewer in the right sidebar. This requires the core plugin **Web viewer**.
 - Status changes are sent right away. An open board refreshes about once a minute, and **Refresh** reloads it immediately. If a save response is lost, the plugin checks the status in Linear again. The system "Duplicate" status is applied when you mark an issue as a duplicate in Linear.
 - The board always shows the current state, whichever date the note is for.
+- Daily notes widen to the full pane so the columns have room. Daily notes are found by the folder and date format set in the core plugin **Daily notes**.
 - In the settings, you can choose which team and which status columns the board shows.
 - The interface is available in English and Korean. It follows Obsidian's language until you pick one under **Language** in the settings.
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { build } from "esbuild";
 import { JSDOM } from "jsdom";
+import moment from "moment";
 
 const { outputFiles } = await build({
   entryPoints: [new URL("../src/main.ts", import.meta.url).pathname],
@@ -65,12 +66,17 @@ test("daily layout follows the file when splitting, reusing or renaming a tab, a
   }
   class HostPlugin { async loadData() { return null; } addSettingTab() {} addCommand() {} registerEvent() {} registerMarkdownCodeBlockProcessor() {} }
   const doc = new JSDOM().window.document;
-  const daily = "raw/notes/daily/2026-11-18.md", other = "notes/주제.md";
+  // Daily note folder and file name format come from the core Daily notes plugin.
+  const daily = "journal/2026/11-18.md", other = "journal/주제.md";
   const views = [new MarkdownView(daily), new MarkdownView(other)];
+  const dailyNotes = { instance: { options: { folder: "/journal/", format: "YYYY/MM-DD" } } };
   const handlers = new Map();
   const on = (name, fn) => handlers.set(name, fn);
-  const plugin = pluginWith({ Plugin: HostPlugin, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {}, MarkdownView });
-  plugin.app = { workspace: { on, getLeavesOfType: () => views.map(view => ({ view })) }, vault: { on }, secretStorage: { getSecret: () => null } };
+  const plugin = pluginWith({ Plugin: HostPlugin, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {}, MarkdownView, moment });
+  plugin.app = {
+    workspace: { on, getLeavesOfType: () => views.map(view => ({ view })) }, vault: { on }, secretStorage: { getSecret: () => null },
+    internalPlugins: { getPluginById: id => id === "daily-notes" ? dailyNotes : null },
+  };
   const wide = () => views.map(view => view.contentEl.classList.contains("ldb-daily-note"));
   await plugin.onload();
   assert.deepEqual(wide(), [true, false]);

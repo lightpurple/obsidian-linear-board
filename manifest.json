@@ -3,7 +3,7 @@
   "name": "Linear Daily Board",
   "version": "0.1.0",
   "minAppVersion": "1.11.4",
-  "description": "일일노트에서 담당 이슈를 Linear 칸반 보드로 보고 상태를 변경합니다.",
+  "description": "Show your assigned Linear issues as a kanban board in daily notes and change their status.",
   "author": "lightpurple",
   "isDesktopOnly": false
 }
