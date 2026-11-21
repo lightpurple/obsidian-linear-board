@@ -5,11 +5,7 @@ import { t } from "./i18n.ts";
 const DRAG_TYPE = "application/x-obsidian-linear-issue";
 
 function add<K extends keyof HTMLElementTagNameMap>(parent: HTMLElement, tag: K, cls: string, text?: string) {
-  const el = parent.ownerDocument.createElement(tag);
-  el.className = cls;
-  if (text !== undefined) el.textContent = text;
-  parent.append(el);
-  return el;
+  return parent.createEl(tag, { cls, text });
 }
 
 export class BoardWidget {

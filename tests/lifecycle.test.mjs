@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { build } from "esbuild";
-import { JSDOM } from "jsdom";
+import { JSDOM } from "./dom.mjs";
 import moment from "moment";
 
 const { outputFiles } = await build({
@@ -127,7 +127,31 @@ test("team and workflow column settings persist together across reloads", async 
       };
       configure(dropdown);
     }
+    addButton(configure) {
+      const button = doc.createElement("button");
+      this.settingEl.append(button);
+      configure({
+        setButtonText(text) { button.textContent = text; return this; },
+        setCta() { return this; },
+        onClick(handler) { button.onclick = handler; return this; },
+      });
+    }
   }
+  // Renders the declarative settings the way Obsidian does, again whenever the plugin asks for it.
+  function renderSettings(plugin, el) {
+    const walk = (items, parent) => {
+      for (const item of items) {
+        if (item.items) walk(item.items, parent);
+        else if (item.render) item.render(new Setting(parent));
+      }
+    };
+    const draw = () => {
+      el.replaceChildren();
+      walk(plugin.settingDefinitions(draw), el);
+    };
+    draw();
+  }
+  const settle = () => new Promise(resolve => setImmediate(resolve));
   let saved;
   class HostPlugin {
     async loadData() { return saved; }
@@ -161,15 +185,14 @@ test("team and workflow column settings persist together across reloads", async 
     return plugin;
   };
   const plugin = await start();
-  plugin.teamSetting(root);
-  await new Promise(resolve => setImmediate(resolve));
-  const select = root.querySelector("select");
+  renderSettings(plugin, root);
+  await settle();
+  const select = root.querySelectorAll("select")[1];
   assert.deepEqual(Array.from(select.options, option => option.text), ["모든 팀", "디자인팀 (DES)"]);
   assert.equal(select.value, "");
   select.value = "design";
   await select.onchange();
   assert.equal(plugin.store.teamId, "design");
-  await new Promise(resolve => setImmediate(resolve));
   const done = root.querySelector('input[type="checkbox"]');
   assert.equal(done.checked, true);
   done.checked = false;
@@ -178,16 +201,16 @@ test("team and workflow column settings persist together across reloads", async 
   assert.equal(restarted.store.teamId, "design");
   assert.deepEqual([...restarted.store.hiddenColumns], ["design/done"]);
   const languageEl = doc.createElement("div");
-  restarted.languageSetting(languageEl, () => {});
+  renderSettings(restarted, languageEl);
   const language = languageEl.querySelector("select");
   assert.equal(language.value, "ko");
   language.value = "en";
   await language.onchange();
   const english = await start();
   const teamsEl = doc.createElement("div");
-  english.teamSetting(teamsEl);
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(teamsEl.querySelector("select").options[0].text, "All teams");
+  renderSettings(english, teamsEl);
+  await settle();
+  assert.equal(teamsEl.querySelectorAll("select")[1].options[0].text, "All teams");
   assert.equal(english.store.teamId, "design");
   dom.window.close();
 });

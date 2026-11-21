@@ -11,7 +11,7 @@
 
 ## 연결
 
-옵시디언 1.11.4 이상에서 플러그인을 활성화합니다. 일일노트의 **Linear 연결**을 누르고 이슈 읽기와 수정 권한이 있는 개인 API 키를 입력합니다. 키는 옵시디언 비밀 저장소에 보관합니다. 키를 바꾸려면 설정에서 **Linear Daily Board**를 엽니다. [Linear API 안내](https://linear.app/developers/graphql)
+옵시디언 1.13.0 이상에서 플러그인을 활성화합니다. 일일노트의 **Linear 연결**을 누르고 이슈 읽기와 수정 권한이 있는 개인 API 키를 입력합니다. 키는 옵시디언 비밀 저장소에 보관합니다. 키를 바꾸려면 설정에서 **Linear Daily Board**를 엽니다. [Linear API 안내](https://linear.app/developers/graphql)
 
 ## 일일노트에서 사용하기
 

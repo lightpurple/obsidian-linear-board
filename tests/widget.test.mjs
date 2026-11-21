@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { JSDOM } from "jsdom";
+import { JSDOM } from "./dom.mjs";
 import { BoardStore } from "../src/store.ts";
 import { BoardWidget } from "../src/widget.ts";
 import { setLanguage } from "../src/i18n.ts";

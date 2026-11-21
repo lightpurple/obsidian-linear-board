@@ -1,8 +1,8 @@
 {
   "id": "linear-daily-board",
   "name": "Linear Daily Board",
-  "version": "0.1.0",
-  "minAppVersion": "1.11.4",
+  "version": "0.1.1",
+  "minAppVersion": "1.13.0",
   "description": "Show your assigned Linear issues as a kanban board in daily notes and change their status.",
   "author": "lightpurple",
   "isDesktopOnly": false

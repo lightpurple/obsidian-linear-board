@@ -241,7 +241,7 @@ export class LinearClient {
 
     let reply: GraphQLReply<T> | null = null;
     try {
-      reply = JSON.parse(response.text);
+      reply = JSON.parse(response.text) as GraphQLReply<T>;
     } catch {
       // A proxy can return HTML on HTTP errors; the status still identifies the failure.
     }

@@ -11,7 +11,7 @@ An Obsidian plugin that shows your assigned Linear issues as a kanban board insi
 
 ## Connect to Linear
 
-Enable the plugin in Obsidian 1.11.4 or later. In a daily note, click **Connect Linear** and enter a personal API key that can read and update issues. The key is kept in Obsidian's secret storage. To change the key, open **Linear Daily Board** in the plugin settings. See the [Linear API documentation](https://linear.app/developers/graphql).
+Enable the plugin in Obsidian 1.13.0 or later. In a daily note, click **Connect Linear** and enter a personal API key that can read and update issues. The key is kept in Obsidian's secret storage. To change the key, open **Linear Daily Board** in the plugin settings. See the [Linear API documentation](https://linear.app/developers/graphql).
 
 ## Use it in a daily note
 
