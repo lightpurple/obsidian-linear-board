@@ -5,8 +5,8 @@
 An Obsidian plugin that shows your assigned Linear issues as a kanban board inside daily notes. Move a card to another column to change the issue's status in Linear.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/board-dark-en.png">
-  <img alt="A Linear kanban board with Product and Design teams inside an Obsidian daily note" src="docs/board-light-en.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/lightpurple/obsidian-linear-board/main/docs/board-dark-en.png">
+  <img alt="A Linear kanban board with Product and Design teams inside an Obsidian daily note" src="https://raw.githubusercontent.com/lightpurple/obsidian-linear-board/main/docs/board-light-en.png">
 </picture>
 
 ## Connect to Linear

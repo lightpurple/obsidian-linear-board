@@ -5,8 +5,8 @@
 옵시디언의 일일노트 본문에서 내 Linear 이슈를 팀별 칸반으로 보고, 카드를 다른 열로 옮겨 상태를 변경합니다.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/board-dark-ko.png">
-  <img alt="옵시디언 일일노트 안에 제품팀과 디자인팀의 Linear 칸반 보드가 표시된 화면" src="docs/board-light-ko.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/lightpurple/obsidian-linear-board/main/docs/board-dark-ko.png">
+  <img alt="옵시디언 일일노트 안에 제품팀과 디자인팀의 Linear 칸반 보드가 표시된 화면" src="https://raw.githubusercontent.com/lightpurple/obsidian-linear-board/main/docs/board-light-ko.png">
 </picture>
 
 ## 연결
