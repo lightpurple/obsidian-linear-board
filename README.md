@@ -1,34 +1,39 @@
 # Linear Daily Board
 
-옵시디언의 일일노트 본문에서 내 Linear 이슈를 팀별 칸반으로 보고, 카드를 다른 열로 옮겨 상태를 변경합니다. 일일노트를 열어 둔 채로 오래 이어 쓸 메모의 원본도 오른쪽에서 편집할 수 있습니다.
+[한국어](README.ko.md)
 
-## 연결
+An Obsidian plugin that shows your assigned Linear issues as a kanban board inside daily notes. Move a card to another column to change the issue's status in Linear.
 
-옵시디언 1.11.4 이상에서 플러그인을 활성화합니다. 일일노트의 **Linear 연결**을 누르고 이슈 읽기와 수정 권한이 있는 개인 API 키를 입력합니다. 키는 옵시디언 비밀 저장소에 보관합니다. 키를 바꾸려면 설정에서 **Linear Daily Board**를 엽니다. [Linear API 안내](https://linear.app/developers/graphql)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/board-dark-en.png">
+  <img alt="A Linear kanban board with Product and Design teams inside an Obsidian daily note" src="docs/board-light-en.png">
+</picture>
 
-## 일일노트에서 사용하기
+The plugin's interface is in Korean. The button and setting names below are given in Korean with an English translation.
 
-일일노트나 일일노트 양식에 아래 두 블록을 넣고 읽기 보기 또는 라이브 프리뷰로 엽니다.
+## Connect to Linear
+
+Enable the plugin in Obsidian 1.11.4 or later. In a daily note, click **Linear 연결** (Connect Linear) and enter a personal API key that can read and update issues. The key is kept in Obsidian's secret storage. To change the key, open **Linear Daily Board** in the plugin settings. See the [Linear API documentation](https://linear.app/developers/graphql).
+
+## Use it in a daily note
+
+Add the block below to a daily note or to your daily note template, then open the note in Reading view or Live Preview.
 
 ````markdown
-## 오늘 할 일
+## Today
 
 ```linear-board
 ```
-
-## 이어서 쓰는 메모
-
-```ongoing-notes
-```
 ````
 
-- 보드는 현재 사용자에게 배정된 보관 처리 전 이슈를 가져옵니다. 각 팀의 워크플로 상태가 열이 됩니다. 카드를 같은 팀의 다른 열로 끌거나 카드의 상태 메뉴를 사용하세요. 이슈 제목을 누르면 Linear 원본이 열립니다.
-- 상태 변경은 바로 전송합니다. 열려 있는 보드는 약 1분마다 갱신하며 **새로고침**으로 즉시 다시 조회할 수 있습니다. 저장 응답이 끊기면 Linear에서 상태를 다시 확인합니다. 시스템의 중복 상태는 Linear에서 중복 이슈를 지정하면 반영됩니다.
-- 이어서 쓰는 메모에는 메모 폴더에 있는 마크다운 파일이 표시됩니다. 제목을 누르면 오른쪽에서 원본을 편집할 수 있습니다. **열어 둔 메모 닫기**를 누르면 해당 편집 탭이 닫힙니다.
-- Linear 보드는 어느 날짜의 노트에서 열어도 항상 현재 상태를 표시합니다. 이어서 쓰는 메모는 `YYYY-MM-DD.md` 형식의 노트에서 해당 날짜에만 표시합니다. 그날의 진행 기록은 일일노트에 마크다운으로 남길 수 있습니다.
-## 빌드 및 설치
+- The board loads the unarchived issues assigned to you. Each team's workflow states become the columns. Drag a card to another column of the same team, or use the status menu on the card. Click an issue title to open it in the web viewer in the right sidebar. This requires the core plugin **Web viewer**.
+- Status changes are sent right away. An open board refreshes about once a minute, and **새로고침** (Refresh) reloads it immediately. If a save response is lost, the plugin checks the status in Linear again. The system "Duplicate" status is applied when you mark an issue as a duplicate in Linear.
+- The board always shows the current state, whichever date the note is for.
+- In the settings, you can choose which team and which status columns the board shows.
 
-Node.js 22.18 이상에서 다음 명령을 실행합니다.
+## Build and install
+
+Run the following commands with Node.js 22.18 or later.
 
 ```sh
 npm ci
@@ -36,4 +41,8 @@ npm test
 npm run build
 ```
 
-`main.js`, `manifest.json`, `styles.css`를 설치하려는 볼트의 `.obsidian/plugins/linear-daily-board/`에 복사한 뒤 옵시디언 설정에서 플러그인을 활성화합니다.
+Copy `main.js`, `manifest.json` and `styles.css` to `.obsidian/plugins/linear-daily-board/` in your vault, then enable the plugin in the Obsidian settings.
+
+## License
+
+[MIT](LICENSE)

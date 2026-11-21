@@ -1,21 +1,16 @@
 import {
   App, MarkdownRenderChild, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, type MarkdownPostProcessorContext,
-  requestUrl, setIcon, Setting, TFile, WorkspaceLeaf,
+  requestUrl, Setting, WorkspaceLeaf,
 } from "obsidian";
 import { LinearClient, type Issue, type Team } from "./linear.ts";
-import { BoardStore, isLiveNote, REFRESH_MS } from "./store.ts";
+import { BoardStore, REFRESH_MS } from "./store.ts";
 import { BoardWidget } from "./widget.ts";
 
 const WEB_VIEWER = "webviewer";
 const KEY_ID = "linear-daily-board-api-key";
 const DAILY_FOLDER = "raw/notes/daily/";
-const TOPIC_FOLDER = "raw/notes/ongoing";
 
 type DisplaySettings = { teamId: string; hiddenColumns: string[] };
-
-function isTopicPath(path: string): boolean {
-  return path === TOPIC_FOLDER || path.startsWith(TOPIC_FOLDER + "/");
-}
 
 export default class LinearDailyBoard extends Plugin {
   store = new BoardStore();
@@ -24,9 +19,6 @@ export default class LinearDailyBoard extends Plugin {
   private key: string | null = null;
   private issueViewer: WorkspaceLeaf | null = null;
   private openingIssue = false;
-  private editor: WorkspaceLeaf | null = null;
-  private editedNote: TFile | null = null;
-  private opening = false;
   private blocks = new Set<MarkdownRenderChild>();
 
   async onload() {
@@ -44,9 +36,6 @@ export default class LinearDailyBoard extends Plugin {
     this.addCommand({ id: "connect", name: "Linear API 키 연결", callback: () => this.openConnection() });
     this.registerMarkdownCodeBlockProcessor("linear-board", (_text, el, ctx) => {
       this.mount(ctx, new LiveBoard(el, this, ctx.sourcePath));
-    });
-    this.registerMarkdownCodeBlockProcessor("ongoing-notes", (_text, el, ctx) => {
-      this.mount(ctx, new TopicNotes(el, this, ctx.sourcePath));
     });
     this.updateKey();
   }
@@ -255,39 +244,6 @@ export default class LinearDailyBoard extends Plugin {
       this.openingIssue = false;
     }
   }
-
-  topicEditor(): WorkspaceLeaf | null {
-    const leaf = this.editor;
-    if (!leaf || !this.app.workspace.getLeavesOfType("markdown").includes(leaf)) return null;
-    if (!(leaf.view instanceof MarkdownView) || leaf.view.file !== this.editedNote || leaf.getViewState().pinned) return null;
-    return leaf;
-  }
-
-  async openTopic(file: TFile) {
-    if (this.opening) return;
-    this.opening = true;
-    try {
-      const workspace = this.app.workspace;
-      const restored = workspace.getLeavesOfType("markdown").find(leaf =>
-        leaf.getRoot() === workspace.rightSplit && !leaf.getViewState().pinned &&
-        leaf.view instanceof MarkdownView && leaf.view.file === file);
-      const leaf = restored ?? this.topicEditor() ?? workspace.getRightLeaf(false) ?? workspace.getLeaf("tab");
-      await leaf.openFile(file, { active: true, state: { mode: "source" } });
-      this.editor = leaf;
-      this.editedNote = file;
-      await workspace.revealLeaf(leaf);
-    } catch {
-      new Notice("메모를 열 수 없습니다. 파일이 이동했는지 확인해 주세요.");
-    } finally {
-      this.opening = false;
-    }
-  }
-
-  closeTopic() {
-    this.topicEditor()?.detach();
-    this.editor = null;
-    this.editedNote = null;
-  }
 }
 
 class DailyBlock extends MarkdownRenderChild {
@@ -321,49 +277,6 @@ class LiveBoard extends DailyBlock {
     // Live Preview can mount this component before its element has a layout box.
     const frame = win.requestAnimationFrame(refresh);
     this.register(() => win.cancelAnimationFrame(frame));
-  }
-}
-
-class TopicNotes extends DailyBlock {
-  onload() {
-    const { plugin, containerEl } = this;
-    const { vault, workspace } = plugin.app;
-    const render = () => {
-      containerEl.empty();
-      if (!isLiveNote(this.path)) return;
-      const files = vault.getMarkdownFiles().filter(file => isTopicPath(file.path));
-      files.sort((a, b) => a.basename.localeCompare(b.basename, "ko"));
-      const list = containerEl.createEl("ul", { cls: "ldb-notes" });
-      for (const file of files) {
-        const item = list.createEl("li");
-        const button = item.createEl("button", { cls: "ldb-open-note" });
-        button.createSpan({ text: file.basename });
-        setIcon(button.createSpan({ cls: "ldb-note-icon" }), "panel-right-open");
-        button.title = "오른쪽에서 편집";
-        button.onclick = async () => {
-          if (isLiveNote(this.path)) await plugin.openTopic(file);
-          updateClose();
-        };
-      }
-      if (!files.length) containerEl.createEl("p", { cls: "ldb-hint", text: TOPIC_FOLDER + "에 추가한 메모가 여기에 표시됩니다." });
-      const close = containerEl.createEl("button", { cls: "ldb-close-note", text: "열어 둔 메모 닫기" });
-      close.onclick = () => { plugin.closeTopic(); updateClose(); };
-      updateClose();
-    };
-    const updateClose = () => {
-      const close = containerEl.querySelector<HTMLButtonElement>(".ldb-close-note");
-      if (close) close.hidden = !plugin.topicEditor();
-    };
-    this.registerEvent(vault.on("create", file => { if (isTopicPath(file.path)) render(); }));
-    this.registerEvent(vault.on("delete", file => { if (isTopicPath(file.path)) render(); }));
-    this.registerEvent(vault.on("rename", (file, old) => { if (isTopicPath(file.path) || isTopicPath(old)) render(); }));
-    this.registerEvent(workspace.on("layout-change", updateClose));
-    let wasLive = isLiveNote(this.path);
-    this.watchClock(() => {
-      const live = isLiveNote(this.path);
-      if (wasLive !== live) { wasLive = live; render(); }
-    });
-    render();
   }
 }
 

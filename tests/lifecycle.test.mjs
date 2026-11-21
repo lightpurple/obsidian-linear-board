@@ -65,8 +65,8 @@ test("daily layout follows the file when splitting, reusing or renaming a tab, a
   }
   class HostPlugin { async loadData() { return null; } addSettingTab() {} addCommand() {} registerEvent() {} registerMarkdownCodeBlockProcessor() {} }
   const doc = new JSDOM().window.document;
-  const daily = "raw/notes/daily/2026-11-18.md", topic = "raw/notes/ongoing/주제.md";
-  const views = [new MarkdownView(daily), new MarkdownView(topic)];
+  const daily = "raw/notes/daily/2026-11-18.md", other = "notes/주제.md";
+  const views = [new MarkdownView(daily), new MarkdownView(other)];
   const handlers = new Map();
   const on = (name, fn) => handlers.set(name, fn);
   const plugin = pluginWith({ Plugin: HostPlugin, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {}, MarkdownView });
@@ -77,35 +77,14 @@ test("daily layout follows the file when splitting, reusing or renaming a tab, a
   views.push(new MarkdownView(daily));
   handlers.get("layout-change")();
   assert.deepEqual(wide(), [true, false, true]);
-  views[0].file = { path: topic };
+  views[0].file = { path: other };
   handlers.get("file-open")(views[0].file);
   assert.deepEqual(wide(), [false, false, true]);
   views[1].file.path = daily;
-  handlers.get("rename")(views[1].file, topic);
+  handlers.get("rename")(views[1].file, other);
   assert.deepEqual(wide(), [false, true, true]);
   plugin.onunload();
   assert.deepEqual(wide(), [false, false, false]);
-});
-
-test("clicking a topic after restarting Obsidian reuses its unpinned editor in the right sidebar", async () => {
-  class MarkdownView {}
-  const plugin = pluginWith({ Plugin: class {}, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {}, MarkdownView });
-  const rightSplit = {};
-  const file = { path: "raw/notes/ongoing/주제.md" };
-  const restored = {
-    view: Object.assign(new MarkdownView(), { file }),
-    getRoot: () => rightSplit, getViewState: () => ({ pinned: false }),
-    openFile: async () => {}, detach() {},
-  };
-  let extraTabs = 0;
-  const workspace = {
-    rightSplit, getLeavesOfType: () => [restored], revealLeaf: async () => {},
-    getRightLeaf: () => { extraTabs++; return { openFile: async () => {} }; },
-  };
-  plugin.app = { workspace };
-  await plugin.openTopic(file);
-  assert.equal(extraTabs, 0);
-  assert.equal(plugin.topicEditor(), restored);
 });
 
 test("team and workflow column settings persist together across reloads", async () => {
@@ -194,7 +173,7 @@ test("team and workflow column settings persist together across reloads", async 
   dom.window.close();
 });
 
-test("opening two issues reuses a right sidebar web viewer and leaves memo tabs alone", async () => {
+test("opening two issues reuses a right sidebar web viewer and leaves other tabs alone", async () => {
   const rightSplit = {};
   const plugin = pluginWith({ Plugin: class {}, MarkdownRenderChild: class {}, PluginSettingTab: class {}, Modal: class {} });
   const tabs = [];

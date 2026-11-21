@@ -3,7 +3,7 @@
   "name": "Linear Daily Board",
   "version": "0.1.0",
   "minAppVersion": "1.11.4",
-  "description": "일일노트에서 담당 이슈의 Linear 상태를 변경하고, 이어 쓸 메모를 오른쪽에서 편집합니다.",
+  "description": "일일노트에서 담당 이슈를 Linear 칸반 보드로 보고 상태를 변경합니다.",
   "author": "lightpurple",
   "isDesktopOnly": false
 }

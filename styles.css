@@ -102,28 +102,5 @@
   max-width: 100%;
   margin-top: .2rem;
 }
-.ldb-notes {
-  margin: 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-}
-.ldb-notes li { margin: 0; padding: 0; }
-.ldb-notes .ldb-open-note {
-  display: flex;
-  width: 100%;
-  height: auto;
-  gap: .6rem;
-  justify-content: space-between;
-  align-items: center;
-  padding: .55rem .65rem;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-normal);
-  text-align: start;
-}
-.ldb-notes .ldb-open-note:hover { background: var(--background-modifier-hover); }
-.ldb-note-icon { display: flex; color: var(--text-muted); }
-.ldb-close-note { margin: .4rem .65rem 0; }
-.ldb-close-note[hidden] { display: none; }
 .ldb-credentials label { display: grid; gap: .5rem; }
 .ldb-credentials input { width: 100%; }

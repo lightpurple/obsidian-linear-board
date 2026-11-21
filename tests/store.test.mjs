@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BoardStore, isLiveNote } from "../src/store.ts";
+import { BoardStore } from "../src/store.ts";
 
 function fixture() {
   const state = (id, type) => ({ id, type, name: id, position: 0, color: "#557799" });
@@ -110,12 +110,4 @@ test("automatic refresh shares the cache and waits out a server rate limit, incl
   await store.refresh();
   assert.equal(requests, 3);
   assert.equal(store.error, "");
-});
-
-test("ongoing notes only appear in today's daily note or an undated note", () => {
-  const localNoon = new Date(2026, 10, 18, 12);
-  assert.equal(isLiveNote("raw/notes/daily/2026-11-18.md", localNoon), true);
-  assert.equal(isLiveNote("raw/notes/daily/2026-11-17.md", localNoon), false);
-  assert.equal(isLiveNote("raw/notes/daily/2026-11-19.md", localNoon), false);
-  assert.equal(isLiveNote("개인 보드.md", localNoon), true);
 });

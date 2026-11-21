@@ -3,13 +3,6 @@ import type { BoardData, LinearClient } from "./linear.ts";
 type BoardClient = Pick<LinearClient, "load" | "move"> & { dispose?(): void };
 export const REFRESH_MS = 60_000;
 
-export function isLiveNote(path: string, now = new Date()): boolean {
-  const date = path.match(/(?:^|\/)(\d{4}-\d{2}-\d{2})\.md$/)?.[1];
-  if (!date) return true;
-  const day = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")];
-  return date === day.join("-");
-}
-
 export class BoardStore {
   data: BoardData | null = null;
   busy: "refresh" | "move" | null = null;
